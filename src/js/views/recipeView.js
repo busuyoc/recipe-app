@@ -1,14 +1,38 @@
+// RecipeView.js - Fixed version
 import View from './View.js';
 import icons from 'url:../../img/icons.svg';
 import fracty from 'fracty';
-// Use as: new fracty(ing.quantity).toString()
 
 class RecipeView extends View {
   _parentElement = document.querySelector('.recipe');
   _errorMessage = 'We could not find that recipe. Please try another one!';
-  _message = 'SUCCESS!';
+  _message = '';
+
+  addHandlerRender(handler) {
+    ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
+  }
+
+  addHandlerUpdateServings(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--update-servings');
+      if (!btn) return;
+      const updateTo = +btn.dataset.updateTo;
+      if (updateTo > 0) handler(updateTo);
+    });
+  }
+
+  addHandlerAddBookmark(handler) {
+    // event delegation is necessary since the bookmark does not exist when the page is loaded
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('button.btn--round.btn--bookmark');
+
+      if (!btn) return;
+
+      handler();
+    });
+  }
+
   _generateMarkup() {
-    console.log(this._data);
     return `
         <figure class="recipe__fig">
           <img src="${this._data.imageUrl}" alt="${
@@ -39,12 +63,16 @@ class RecipeView extends View {
             <span class="recipe__info-text">servings</span>
 
             <div class="recipe__info-buttons">
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--update-servings" data-update-to="${
+                this._data.servings - 1
+              }">
                 <svg>
                   <use href="${icons}#icon-minus-circle"></use>
                 </svg>
               </button>
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--update-servings" data-update-to="${
+                this._data.servings + 1
+              }">
                 <svg>
                   <use href="${icons}#icon-plus-circle"></use>
                 </svg>
@@ -53,11 +81,12 @@ class RecipeView extends View {
           </div>
 
           <div class="recipe__user-generated">
-         
           </div>
-          <button class="btn--round">
+          <button class="btn--round btn--bookmark">
             <svg class="">
-              <use href="${icons}#icon-bookmark-fill"></use>
+              <use href="${icons}#icon-bookmark${
+      this._data.bookmarked ? '-fill' : ''
+    }"></use>
             </svg>
           </button>
         </div>
@@ -80,11 +109,9 @@ class RecipeView extends View {
             }</span>. Please check out
             directions at their website.
           </p>
-          <a
-            class="btn--small recipe__btn"
-            href="${this._data.sourceUrl}"
-            target="_blank"
-          >
+          <a class="btn--small recipe__btn" href="${
+            this._data.sourceUrl
+          }" target="_blank">
             <span>Directions</span>
             <svg class="search__icon">
               <use href="${icons}#icon-arrow-right"></use>
@@ -93,6 +120,7 @@ class RecipeView extends View {
         </div>
     `;
   }
+
   _generateMarkupIngredients = function (ing) {
     return `
             <li class="recipe__ingredient">
@@ -103,11 +131,12 @@ class RecipeView extends View {
                 ing.quantity ? fracty(ing.quantity).toString() : ''
               }</div>
               <div class="recipe__description">
-                <span class="recipe__unit">${ing.unit}</span>
+                <span class="recipe__unit">${ing.unit || ''}</span>
                 ${ing.description}
               </div>
             </li>
           `;
   };
 }
+
 export default new RecipeView();

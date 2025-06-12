@@ -10,6 +10,7 @@ export const state = {
     page: 1,
     resultsPerPage: RES_PER_PAGE,
   },
+  bookmarks: [],
 };
 export const loadRecipe = async function (id) {
   try {
@@ -26,6 +27,11 @@ export const loadRecipe = async function (id) {
       cookingTime: recipe.cooking_time,
       ingredients: recipe.ingredients,
     };
+    if (state.bookmarks.some(b => b.id === id)) {
+      state.recipe.bookmarked = true;
+    } else {
+      state.recipe.bookmarked = false;
+    }
   } catch (err) {
     console.error(`${err} 💥💥💥`);
     throw err; // re-throw the error to be handled by the controller // why? // because we want to handle it in the controller, not here
@@ -45,6 +51,7 @@ export const loadSearchResults = async function (query) {
         imageUrl: rec.image_url,
       };
     });
+    state.search.page = 1;
   } catch (err) {
     console.log(`${err} 💥💥💥`);
     throw err;
@@ -58,3 +65,36 @@ export const getSearchResultsPage = function (page = state.search.page) {
   const end = page * state.search.resultsPerPage; //9
   return state.search.results.slice(start, end);
 };
+
+export const updateServings = function (newServings) {
+  state.recipe.ingredients.forEach(ing => {
+    ing.quantity = (ing.quantity * newServings) / state.recipe.servings;
+  });
+  state.recipe.servings = newServings;
+};
+
+const persistBookmarks = function (e) {
+  localStorage.setItem('bookmarks', JSON.stringify(state.bookmarks));
+};
+
+export const addBookmark = function (recipe) {
+  state.bookmarks.push(recipe);
+
+  if (recipe.id === state.recipe.id) state.recipe.bookmarked = true;
+  persistBookmarks();
+};
+export const deleteBookmark = function (id) {
+  state.bookmarks = state.bookmarks.filter(el => el.id !== id);
+  if (id === state.recipe.id) state.recipe.bookmarked = false;
+  persistBookmarks();
+};
+const init = function () {
+  const storage = localStorage.getItem('bookmarks');
+  if (storage) state.bookmarks = JSON.parse(storage);
+};
+init();
+
+const clearBookmarks = function () {
+  localStorage.clear('bookmarks');
+};
+// clearBookmarks();
